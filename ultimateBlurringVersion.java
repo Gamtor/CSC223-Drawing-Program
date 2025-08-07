@@ -1,9 +1,11 @@
 /**
- * Code cleaned up.
+ * A drawing program that lets you draw, select color, undo, save and load.
  *
- * Tishar
- * Version 21
+ * Tishar Sreekantam
+ * Version 23
  */
+
+// These packages are for the GUI, Arrays, Colors, and Mouse position + input.
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -13,6 +15,8 @@ import java.awt.Color;
 import java.awt.Point;
 import java.awt.PointerInfo;
 import java.awt.Robot;
+import java.awt.Point;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.lang.*;
@@ -20,37 +24,76 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter; 
 public class ultimateBlurringVersion extends JFrame implements ActionListener,MouseListener{
-    int gridx = 50;
-    int gridy = 40;
+    public final DrawingPanel panel = new DrawingPanel(); // Used for using a JPanel inside the JFrame
 
-    public final DrawingPanel panel = new DrawingPanel();
-
-    int mousex=0;
-    int mousey=0;
-
-    ArrayList<Integer> lastX = new ArrayList<>();
-    ArrayList<Integer> lastY = new ArrayList<>();
-
-    //int[][] setImage = new int[gridx+2][gridy+2]; Used for the blurring code
-    int[][] setImageR = new int[gridx+2][gridy+2];
-    int[][] setImageG = new int[gridx+2][gridy+2];
-    int[][] setImageB = new int[gridx+2][gridy+2];
-    int[][] finalImage = new int[gridx][gridy];
-
+    // Pixel size
     int width=16;
     int length=16;
 
+    // Grid size and grid offset used for grid size and position.
+    int gridx = 50;
+    int gridy = 40;
+
     int gridXOffset=width/2;
-    int gridYOffset=0;
+    int gridYOffset=10;
 
-    int colorR=0;
-    int colorG=0;
-    int colorB=0;
+    //int colorR=0;
+    //int colorG=0;
+    //int colorB=0;
 
+    int[][] setImageR = new int[gridx+2][gridy+2];
+    int[][] setImageG = new int[gridx+2][gridy+2];
+    int[][] setImageB = new int[gridx+2][gridy+2];
+
+    //Positions of the color grids
     int colorOffsetX=850;
     int colorOffsetY=300;
 
+    //Used for setting pixel color
     Color currentColor = new Color(0,0,0);
+
+    // Used for getting a list of all the places the user has placed, which is used for undo. 
+    ArrayList<Integer> lastX = new ArrayList<>();
+    ArrayList<Integer> lastY = new ArrayList<>();
+    List<Point> undoPositions = new ArrayList<>();
+
+    private void clickRegister(MouseEvent e){
+        if(SwingUtilities.isLeftMouseButton(e)){
+            int mousex=0;
+            int mousey=0;
+            if(e.getX()/30<=gridx && e.getY()/30<=gridy){ // Checks if the mouse is inside the grid.
+                mousex=Math.round(e.getX()/width)-1; // current mouse X pos. These have a constant due to menus offsetting the canvas slightly.
+                mousey=Math.round(e.getY()/length)-4; // current mouse Y pos
+
+            }
+            //System.out.println("clicked at "+mousex+", "+mousey); // prints out the location of the mouse click.
+
+            if (lastX.isEmpty() || lastX.get(lastX.size() - 1) != mousex || lastY.get(lastY.size() - 1) != mousey) { // Checks if the mouse is inside the grid
+                Point p = new Point(mousex, mousey);
+
+                setImageR[mousex][mousey] = setImageR[gridx+1][0];
+                setImageG[mousex][mousey] = setImageG[gridx+1][0];
+                setImageB[mousex][mousey] = setImageB[gridx+1][0];
+
+                lastX.add(mousex);
+                lastY.add(mousey);
+                if(!undoPositions.contains(p)){
+                    undoPositions.add(p);
+                }
+            }
+        }
+        if(SwingUtilities.isRightMouseButton(e)){
+            try
+            {
+                mouseColor();
+            }
+            catch (Exception f)
+            {
+                f.printStackTrace();
+            }
+        }
+    }
+
     void createDialog(String title, String text){ // Method to create a dialog box
         JDialog box = new JDialog(this); // creates a dialog box
         box.setBounds(400,400,800,120); // dialog box size
@@ -81,17 +124,19 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
                 for(int x=0; x<gridx+2; x++){
                     currentColor = new Color(setImageR[x][y],setImageG[x][y],setImageB[x][y]);
                     g2.setColor(currentColor);
+                    // start x pos, end x pos, start y pos, end y pos, and hex color (0 black to 255 white.). positions go up by 1 for each tile.
                     g2.fillRect(x*width+xPos+gridXOffset,y*length+yPos+gridYOffset,width,length);
                 }
             }
 
-            //These are shown so the player can pick which color to draw with.
+            //These are given so the user can pick which shade to draw with.
             for(int x=0; x<18; x++){
                 setImageR[x][0]=x*15;
                 setImageG[x][0]=x*15;
                 setImageB[x][0]=x*15;
             }
 
+            // These are for giving the user access to all the colors in the RGB
             int repeats=1;
             int colorGridX=0;
             int colorGridY=0;
@@ -182,7 +227,7 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
     }
 
     public void mousePressed(MouseEvent e){
-        sigma(e);
+        clickRegister(e);
         panel.repaint();
 
     }
@@ -208,21 +253,14 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
                     setImageB[lastX.get(lastX.size()-1)][lastY.get(lastY.size()-1)]=0;
                     lastX.remove(lastX.size()-1);
                     lastY.remove(lastY.size()-1);
-
-                    panel.repaint(); // moves player up
+                    try{ // This is to allow for the undo to work correctly.
+                        undoPositions.remove(lastY.size()-1); // This works perfectly fine but throws errors anyway.
+                    }catch(Exception d){
+                        d.printStackTrace();
+                    }
+                    panel.repaint();
                 }
                 break;
-
-                // case "Find Color":
-                // try
-                // {
-                // mouseColor();
-                // }
-                // catch (Exception f)
-                // {
-                // f.printStackTrace();
-                // }
-                // break;
             case "Reset":
                 for (int y=0; y<gridy+2; y++){
                     for(int x = 0; x<gridx+2; x++){ // this sets all grids to empty
@@ -231,7 +269,11 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
                         setImageB[x][y] = 0;
                     }
                 }
+                setImageR[gridx+1][0] = (int)(Math.random() * 256);
+                setImageG[gridx+1][0] = (int)(Math.random() * 256);
+                setImageB[gridx+1][0] = (int)(Math.random() * 256);
                 panel.repaint();
+                undoPositions.clear();
                 break;
 
             case "Save":
@@ -271,9 +313,16 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
 
                 for (int y=0; y<gridy+2; y++){
                     for(int x = 0; x<gridx+2; x++){ // loads the save.
-                        setImageR[x][y] = (int) Math.round(loadCode[x][y]);
-                        setImageG[x][y] = (int) Math.round(loadCode[x][y]);
-                        setImageB[x][y] = (int) Math.round(loadCode[x][y]);
+                        if(loadCode[x][y]<255 && loadCode[x][y]>=0){
+                            setImageR[x][y] = (int) Math.round(loadCode[x][y]);
+                            setImageG[x][y] = (int) Math.round(loadCode[x][y]);
+                            setImageB[x][y] = (int) Math.round(loadCode[x][y]);
+                        } else {
+                            setImageR[x][y] = 0;
+                            setImageG[x][y] = 0;
+                            setImageB[x][y] = 0;
+                            System.out.println("Code contained an invalid value. Was the code saved correctly?");
+                        }
                     }
                 }
                 panel.repaint();
@@ -283,7 +332,11 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
     }
 
     public ultimateBlurringVersion(){
-        setTitle("Image Blurring");
+        setTitle("Drawing Program by Tishar");
+
+        setImageR[gridx+1][0] = (int)(Math.random() * 256);
+        setImageG[gridx+1][0] = (int)(Math.random() * 256);
+        setImageB[gridx+1][0] = (int)(Math.random() * 256);
 
         JMenuBar menuBar;
         JMenu menu;
@@ -307,10 +360,6 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
         menuItem.addActionListener(this);
         menuItem.setAccelerator(KeyStroke.getKeyStroke('z'));
         menu.add(menuItem);
-        menuItem=new JMenuItem("Find Color");
-        menuItem.addActionListener(this);
-        menuItem.setAccelerator(KeyStroke.getKeyStroke('e'));
-        menu.add(menuItem);
 
         menu = new JMenu("Share");
         menuBar.add(menu);
@@ -321,6 +370,17 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
         menuItem.addActionListener(this);
         menu.add(menuItem);
 
+        menu = new JMenu("Help");
+        menuBar.add(menu);
+        menu.add(new JLabel("Welcome to my drawing program!"));
+        menu.add(new JLabel("Left click to draw, right click to select color"));
+        menu.add(new JLabel("Click 'Z' on your keyboard to undo"));
+        menu.add(new JLabel("'File->Reset' Resets the board"));
+        menu.add(new JLabel("If you really like your drawing, You can share it!"));
+        menu.add(new JLabel("Click on 'Share->Save' to recieve a save code. Copy that code and to share it."));
+        menu.add(new JLabel("To load it, click 'Share->Load'. Then paste in the recieved code into it to load the drawing"));
+        menu.add(new JLabel("(Note: The drawings are saved in Greyscale. Top right of the grid is the selected color.)"));
+
         addMouseListener(this);
         add(panel);
         this.getContentPane().setPreferredSize(new Dimension(1515,1105));
@@ -329,53 +389,13 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
         this.pack();
         this.toFront();
         this.setVisible(true);
-
         panel.repaint();
         this.addMouseMotionListener(new MouseMotionAdapter() {
                 @Override
                 public void mouseDragged(MouseEvent e) {
-                    sigma(e);
+                    clickRegister(e);
                     panel.repaint();
-
                 }
-
-                // public void mousePressed(MouseEvent e) {
-                // sigma(e);
-                // panel.repaint();
-                // }
             });
-        for (int y=0; y<gridy; y++){
-            for(int x = 0; x<gridx; x++){
-                System.out.print(finalImage[x][y]+" ");
-            }
-            System.out.println();
-        }
-    }
-
-    private void sigma(MouseEvent e){
-        if(SwingUtilities.isLeftMouseButton(e)){
-            if(e.getX()/30<=gridx && e.getY()/30<=gridy){
-                mousex=Math.round(e.getX()/width)-1; // current mouse X pos
-                mousey=Math.round(e.getY()/length)-3; // current mouse Y pos
-
-            }
-            //System.out.println("clicked at "+mousex+", "+mousey); // prints out the location of the mouse click.
-            // start x pos, end x pos, start y pos, end y pos, and hex color (0 black to 255 white.). positions go up by 1 for each tile.
-            setImageR[mousex][mousey] = setImageR[gridx+1][0];
-            setImageG[mousex][mousey] = setImageG[gridx+1][0];
-            setImageB[mousex][mousey] = setImageB[gridx+1][0];
-            lastX.add(mousex);
-            lastY.add(mousey);
-        }
-        if(SwingUtilities.isRightMouseButton(e)){
-            try
-            {
-                mouseColor();
-            }
-            catch (Exception f)
-            {
-                f.printStackTrace();
-            }
-        }
     }
 }
