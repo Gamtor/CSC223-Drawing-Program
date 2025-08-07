@@ -37,10 +37,6 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
     int gridXOffset=width/2;
     int gridYOffset=10;
 
-    //int colorR=0;
-    //int colorG=0;
-    //int colorB=0;
-
     int[][] setImageR = new int[gridx+2][gridy+2];
     int[][] setImageG = new int[gridx+2][gridy+2];
     int[][] setImageB = new int[gridx+2][gridy+2];
@@ -202,7 +198,7 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
             }
         }
     }
-    public void mouseColor() throws Exception{
+    public void mouseColor() throws Exception{ // Gets the mouse color that's under the mouse.
         PointerInfo pointer;
 
         pointer = MouseInfo.getPointerInfo();
@@ -226,10 +222,9 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
         panel.repaint();
     }
 
-    public void mousePressed(MouseEvent e){
+    public void mousePressed(MouseEvent e){ // Runs when the mouse is clicked
         clickRegister(e);
         panel.repaint();
-
     }
 
     public void mouseExited(MouseEvent e) {System.out.println("exit");}
@@ -261,6 +256,7 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
                     panel.repaint();
                 }
                 break;
+                
             case "Reset":
                 for (int y=0; y<gridy+2; y++){
                     for(int x = 0; x<gridx+2; x++){ // this sets all grids to empty
@@ -297,7 +293,7 @@ public class ultimateBlurringVersion extends JFrame implements ActionListener,Mo
                 int counter=0;
                 for (int y=0; y<gridy+2; y++){
                     for(int x = 0; x<gridx+2; x++){ // this sets all grids to empty
-                        //System.out.println(Math.round(Float.parseFloat(stringToInt[counter].replace("]", ""))));
+
                         try{
                             loadCode[x][y] = Math.round(Float.parseFloat(stringToInt[counter].replace("]", "")));
                         } catch(NumberFormatException ex){ // handle your exception
